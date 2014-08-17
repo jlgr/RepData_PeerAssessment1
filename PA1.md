@@ -228,7 +228,8 @@ dataMovNew$dayChar<-NULL
 
 #Final plot with lattice
 library(lattice)
-xyplot(steps ~ interval | weekDay, data = dataMovNew, layout = c(1, 2),
+interWeekday<-aggregate(steps ~ weekDay+interval, data=dataMovNew, FUN=mean,na.rm = TRUE)
+xyplot(steps ~ interval | weekDay, data = interWeekday, layout = c(1, 2),
       type ="l",ylab="Number of Steps", xlab="Interval")
 ```
 
