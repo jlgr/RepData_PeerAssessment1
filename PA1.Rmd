@@ -1,0 +1,95 @@
+# Reproducible Research: Peer Assessment 1
+
+
+## Loading and preprocessing the data
+```{r}
+localFile<-"repdata-data-activity.zip"
+unzip(localFile)
+localFile<-"activity.csv"
+dataMov<-read.csv(localFile)
+
+```
+
+## What is mean total number of steps taken per day?
+
+```{r mean}
+summ<-aggregate(. ~ date, data=dataMov[,c(1:2)], FUN=sum,na.rm = TRUE)
+barplot(summ$steps,names.arg=summ$date,
+        main="Total number of steps taken each day",
+        xlab="date",ylab="steps")
+meanandMedianDay<-aggregate(. ~ date, data=dataMov[,c(1:2)], FUN=mean,na.rm = TRUE)
+
+colnames(meanandMedianDay)[2]<-"Mean"
+medianDay<-aggregate(. ~ date, data=dataMov, FUN=median, na.rm = TRUE)
+meanandMedianDay$Median<-medianDay$steps
+print(meanandMedianDay)
+```
+
+
+## What is the average daily activity pattern?
+```{r timeseries}
+dataMovts<-ts(dataMov)
+plot(dataMovts,type="l",main="Time Series")
+```
+
+## Imputing missing values
+Number of values with NA data:
+```{r NAcount}
+nrow(dataMov[is.na(dataMov$steps),])
+
+```
+Devising a strategy for filling in all of the missing values in the dataset:  mean of the interval across all data.
+Filling...
+```{r filling}
+#New data set
+meanInterval<-aggregate(. ~ interval, data=dataMov[,c(1,3)], FUN=mean,na.rm = TRUE)
+colnames(meanInterval)[2]<-"MeanInterval"
+dataMovNew<-merge(dataMov,meanInterval)
+for(i in 1:nrow(dataMovNew))
+   {
+       if (is.na(dataMovNew$steps[i]))
+          dataMovNew$steps[i]=dataMovNew$MeanInterval[i]
+   }
+#Now calculations with new data
+summNew<-aggregate(. ~ date, data=dataMovNew[,c(3,2)], FUN=sum,na.rm = TRUE)
+barplot(summNew$steps,names.arg=summNew$date,
+        main="Total number of steps taken each day.(NA replaced)",
+        xlab="date",ylab="steps")
+
+meanandMedianDayNew<-aggregate(. ~ date, data=dataMovNew[,c(3,2)], FUN=mean,na.rm = TRUE)
+
+colnames(meanandMedianDayNew)[2]<-"Mean"
+medianDayNew<-aggregate(. ~ date, data=dataMovNew[,c(3,2)], FUN=median, na.rm = TRUE)
+meanandMedianDayNew$Median<-medianDayNew$steps
+print(meanandMedianDayNew)
+
+```
+Do these values differ from the estimates from the first part of the assignment? 
+YES. But Only for days with NA values. 
+
+What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+Is a great impact because there are missing data for full days not only random values some days. For instance the first day of data hava all NA values for steps.
+
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+```{r weekends}
+#as.factor(strftime(as.Date(dataMovNew$date),format="%u"))
+
+dataMovNew$day<-as.numeric(strftime(as.Date(dataMovNew$date),format="%u"))
+dataMovNew$dayChar[dataMovNew$day<6]<-"WeekDay"
+dataMovNew$dayChar[dataMovNew$day>5]<-"WeekEnd"
+dataMovNew$weekDay<-as.factor(dataMovNew$dayChar)
+dataMovNew$dayChar<-NULL
+
+
+
+#Final plot with lattice
+library(lattice)
+xyplot(steps ~ interval | weekDay, data = dataMovNew, layout = c(1, 2),
+      type ="l",ylab="Number of Steps", xlab="Interval")
+
+
+```
